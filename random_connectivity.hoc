@@ -1,0 +1,243 @@
+
+// Global inhibtion version
+//Interneurons randomly inhibit each other and pyrs without distance rule applied across the septotemporal axis
+//Pyrs remain based on the distance dependent propability of connection for them and for exciting INs.
+//this script is used for checking the effect of propagation under different connectivity rules for interneurons 
+//Alexandra Tzilivaki
+
+
+// Target cells receive "convergence" number of inputs from
+// the pool of source cells (only one input per source cell at most)
+// ("convergence" not reached if no. of sources < convergence)
+// connectcells(number of targets, first target cell, 
+//    number of source cells, first source cell, 
+//    convergence, first synapse,
+//    last synapse, connection delay, weight)
+// appends the NetCons to a List called nclist
+
+   objref rvec
+     rvec= new Vector(40)
+
+   proc connectin() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) { //if source and target are different!
+
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          
+          nc.delay = $8
+          // apply weight factor based on distance
+         
+          nc.weight = $9
+         
+          nclist.append(nc)
+         
+        }
+      }
+ 
+   }
+  }
+ }
+ 
+ 
+
+
+proc connectinpc() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        
+        
+        if (r != gid) { //if source and target are different!            
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          nc.delay = $8
+          nc.weight = $9                
+          nclist.append(nc)
+        }
+      }
+ 
+   }
+  }
+ }
+ 
+
+proc connectpyrs() { local i, j, gid, d, nsyn, r, p, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+     if (r != gid) { //if source and target are different!
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+
+while (d>800){
+  r = rs.r.discunif($4, $4+$3-1)
+
+d= abs(cells.object(i).x -cells.object(r).x) //calculate the distance between source and target
+                    if (d<=800 && r!=gid){
+                           p=exp(-((d^2)/(2*(600^2))))
+                break
+     }
+     }
+
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+        
+          nc = cells.object(r).connect2target(syn)
+
+          nc.delay = $8
+          // apply weight factor based on distance
+      
+          nc.weight = $9*p
+        print nc.weight
+          nclist.append(nc)
+
+     }
+ 
+   }
+  }
+ }
+ }
+
+ 
+
+
+ proc connectpcin() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+ 
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) { //if source and target are different!
+        d= abs((cells.object(i).x) - (cells.object(r).x)) //calculate the distance between source and target
+        
+      while (d>800){
+               r = rs.r.discunif($4, $4+$3-1)
+                       d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+                    if (d<=800 && r!=gid){
+                                           p=exp(-((d^2)/(2*(600^2))))
+                       
+  break
+                       }
+                       }
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+        
+          nc.delay = $8
+          // apply weight factor based on distance
+       
+          nc.weight = $9*p
+        
+          nclist.append(nc)
+
+        }
+      }
+ 
+   }
+}
+}
+ /*proc connectpyrs() { local i, j, gid, d, nsyn, r, p, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+     if (r != gid) { //if source and target are different!
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+        
+          nc = cells.object(r).connect2target(syn)
+
+          nc.delay = $8
+         
+          nc.weight = $9
+        print nc.weight
+          nclist.append(nc)
+
+     }
+ 
+   }
+  }
+ }
+ }
+
+
+
+ proc connectpcin() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+ 
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) { //if source and target are different!
+      
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+        
+          nc.delay = $8
+
+          nc.weight = $9
+        
+          nclist.append(nc)
+
+        }
+      }
+ 
+   }
+}
+}*/
+
+

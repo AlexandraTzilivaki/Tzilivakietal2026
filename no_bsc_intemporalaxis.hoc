@@ -1,0 +1,320 @@
+
+//////////////////////////////////////////////////////////////
+// CONNECTIVITY PARAMETERS
+//////////////////////////////////////////////////////////////
+// INPUT
+
+CA3_PC   =270//300    
+CA3_AAC  = 200
+CA3_BC   = 200
+CA3_BSC  = 200
+
+// PC to
+PC_PC    = 2
+PC_AAC   = 13
+PC_BC    = 15
+PC_BSC   = 15
+
+//IN TO PC
+AAC_PC   = 14 
+BC_PC    = 17 
+BSC_PC   =17  
+
+// IN TO IN
+BC_AAC   =2
+BC_BC    = 2
+BC_BSC   =4 
+
+BSC_AAC  =3 
+BSC_BC   =3
+BSC_BSC  =3
+//////////////////////////////////////////////////////////////
+// WEiGHTS/DElAYS
+//////////////////////////////////////////////////////////////
+//------ FROM CA3 SC--------------------
+
+CA3cell2Pcell_weight     = 3.0e-4    
+CA3cell2Pcell_delay      = 1.0
+
+// FROM CA3 to INs
+// CA3 --> Axoaxonic cell
+CA3cell2AAcell_weight   = 1.872e-4
+CA3cell2AAcell_delay    = 1.0
+// CA3 --> Basket cell
+CA3cell2Bcell_weight    = 4.862e-4*1.1*0.3*1.4*1.05          
+CA3cell2Bcell_delay     = 1.0
+// CA3 --> Bistratified cell
+CA3cell2BScell_weight   = 2.925e-4*1.5*1.3 
+CA3cell2BScell_delay    = 1.0
+
+//------ TO PCs--------------------
+factor1 = 1.8
+// FROM PCs to PCs
+Pcell2Pcell_weight           = 4.2e-3
+Pcell2Pcell_delay            = 1.0
+
+// FROM AACs to PCS
+AAcell2Pcell_weight          = 2.07e-3*2*3
+AAcell2Pcell_delay           = 1.0
+
+// FROM BCs to PCS
+Bcell2Pcell_weight           = 3.6e-4*3 
+Bcell2Pcell_delay            = 1.0
+
+// FROM BSCs to PCS
+BScell2Pcell_weight          = 9.18e-4*3 
+BScell2Pcell_GABAB_weight    = 9.18e-4*3
+BScell2Pcell_delay           = 1.0
+
+//------PCs TO INs--------------------
+// FROM PCs to AACs
+Pcell2AAcell_weight       = 4.0e-5
+Pcell2AAcell_delay        = 1.0
+// FROM PCs to BCs
+Pcell2Bcell_weight        = 7.7e-4
+Pcell2Bcell_delay         = 1.0
+// FROM PCs to BSCs
+Pcell2BScell_weight       = 1.9e-3
+Pcell2BScell_delay        = 1.0
+
+//------INs TO INs--------------------
+factor2 = 1.1
+// ONTO AACs
+// FROM BCs to AACs
+Bcell2AAcell_weight       = 1.32e-4
+Bcell2AAcell_delay        = 1.0
+// FROM BSCs to AACs
+BScell2AAcell_weight      = 6.6e-4
+BScell2AAcell_delay       = 1.0
+
+// ONTO BCs
+// FROM BCs to BCs
+Bcell2Bcell_weight       = 1.76e-3
+Bcell2Bcell_delay        = 1.0
+// FROM BSCs to BCs
+BScell2Bcell_weight      = 9.9e-3
+BScell2Bcell_delay       = 1.0
+
+// ONTO BSCs
+// FROM BCs to BSCs
+Bcell2BScell_weight      = 3.19e-3
+Bcell2BScell_delay       = 1.0
+// FROM BSCs to BSCs
+BScell2BScell_weight     = 5.61e-4
+BScell2BScell_delay      = 1.0
+
+//////////////////////////////////////////////////////////////
+// SYNAPTIC INDICES
+//////////////////////////////////////////////////////////////
+// Synapse indices
+// onto CA1 PCs
+
+iCA3_PC    = 12  // CA3 AMPA excit to medium SR (6 of)
+iCA3N_PC   = 18  // CA3 NMDA excit to medium SR (6 of)
+iCA3_PCB   = 24  // CA3 AMPA excit to Oriens (6 of)
+iCA3N_PCB  = 30  // CA3 NMDA excit to Oriens (6 of)
+
+iBC_PC     = 36  // ff&fb inhib via BCs to soma
+iAAC_PC    = 38  // ff&fb inhib via AACs to axon initial segment           
+
+
+iBSC_PC    = 55  // ff&fb inhib via BSCs to SR med (16 of: 8 GABAA, 8 GABAB)
+iBSCb_PC   = 71  // ff&fb inhib via BSCs to ori (12 of: 6 GABAA, 6 GABAB)
+iPC_PC     = 83  // CA1 recurrent AMPA excit to proximal SR
+
+// onto AACs
+iCA3_AAC   = 2   // excit from CA3 to AAC (4 of: AMPA)
+iPC_AAC    = 6   // excit from PC to AAC (2 of: AMPA)
+iBC_AAC    = 8   // inhib from BC to AAC (1 of: GABAA)
+iBSC_AAC   = 9   // inhib from BSC to AAC (2 of: GABAA)
+
+
+
+// onto BCs
+iCA3_BC    = 2   // excit from CA3 to BC (4 of: AMPA)
+iPC_BC     = 6   // excit from PC to BC (2 of: AMPA)
+iBC_BC     = 8   // inhib from BC to BC (1 of: GABAA)
+iBSC_BC    = 9   // inhib from BSC to BC (2 of: GABAA)
+
+
+
+
+// onto BSCs
+iCA3_BSC   = 2   // excit from CA3 to BSC (4 of: AMPA)
+iPC_BSC    = 6   // excit from PC to BSC (2 of: AMPA)
+iBC_BSC    = 8   // inhib from BC to BSC (1 of: GABAA)
+iBSC_BSC   = 9   // inhib from BSC to BSC (2 of: GABAA)
+
+/*******************************************************************************************************************************
+********************************************************************************************************************************
+*******************************************************************************************************************************/
+proc mknet(){
+    
+    print "Connect CA3 inputs... to PCs"
+    // CA3 input to PCs - AMPA
+    connectinputspc(npcell, iPC, nCA3, iCA3, CA3_PC, iCA3_PC, iCA3_PC+5, CA3cell2Pcell_delay, CA3cell2Pcell_weight)
+    // CA3 input to PCs - NMDA
+    connectinputspc(npcell, iPC, nCA3, iCA3, CA3_PC, iCA3N_PC, iCA3N_PC+5, CA3cell2Pcell_delay, CA3cell2Pcell_weight)
+    // CA3 input to PCs - basal - AMPA
+    connectinputspc(npcell, iPC, nCA3, iCA3, CA3_PC, iCA3_PCB, iCA3_PCB+5, CA3cell2Pcell_delay, CA3cell2Pcell_weight)
+    // CA3 input to PCs -basal - NMDA
+    connectinputspc(npcell, iPC, nCA3, iCA3, CA3_PC, iCA3N_PCB, iCA3N_PCB+5, CA3cell2Pcell_delay, CA3cell2Pcell_weight)
+
+  print "Connect Inputs... to AACs"
+  // CA3 to AAC
+ connectinputsin(naacell, iAAC, nCA3, iCA3, CA3_AAC, iCA3_AAC, iCA3_AAC+3, CA3cell2AAcell_delay, CA3cell2AAcell_weight)
+ 
+ print "Connect Inputs... to BCs"
+ 
+  // CA3 to BC
+ connectinputsin(nbcell, iBC, nCA3, iCA3, CA3_BC, iCA3_BC, iCA3_BC+3, CA3cell2Bcell_delay, CA3cell2Bcell_weight)  
+  
+ print "Connect Inputs... to BSCs"
+  // CA3 to BSC
+ 
+   connectinputsin(nbscell/n_assemblies, iBSC, nCA3/n_assemblies, iCA3, CA3_BSC, iCA3_BSC, iCA3_BSC+3, CA3cell2BScell_delay, CA3cell2BScell_weight) 
+connectinputsin(nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), nCA3/n_assemblies, iCA3 +(nCA3/n_assemblies), CA3_BSC, iCA3_BSC, iCA3_BSC+3, CA3cell2BScell_delay, CA3cell2BScell_weight) 
+//connectinputsin(nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), nCA3/n_assemblies, iCA3 + (2*(nCA3/n_assemblies)), CA3_BSC, iCA3_BSC, iCA3_BSC+3, CA3cell2BScell_delay, CA3cell2BScell_weight)     
+ 
+ }
+ proc mknet_connectivity(){
+ 
+ print "Connect PCs... to PCs"
+
+connectpyrs(npcell, iPC, npcell, iPC, PC_PC, iPC_PC, iPC_PC, Pcell2Pcell_delay, Pcell2Pcell_weight) // PC to PC
+
+
+
+
+
+
+print "Connect PCs... to Interneurons"
+ print "================================="
+print "Connect PCs... to Baskets"
+connectpcin(nbcell, iBC, npcell, iPC, PC_BC, iPC_BC, iPC_BC+1, Pcell2Bcell_delay, Pcell2Bcell_weight)  // PC to BC
+ 
+   print "Connect PCs... to Axoxaxonic"
+
+connectpcin(naacell, iAAC, npcell, iPC, PC_AAC, iPC_AAC, iPC_AAC+1, Pcell2AAcell_delay, Pcell2AAcell_weight) //PC to AAC
+
+print "Connect PCs... to Bistratified"
+ connectpcin(nbscell/n_assemblies, iBSC, npcell/n_assemblies, iPC, PC_BSC, iPC_BSC, iPC_BSC+1, Pcell2BScell_delay, Pcell2BScell_weight)  // PC to BSC
+
+connectpcin(nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), npcell/n_assemblies, iPC+(npcell/n_assemblies), PC_BSC, iPC_BSC, iPC_BSC+1, Pcell2BScell_delay, Pcell2BScell_weight)  // PC to BSC
+
+
+//connectpcin(nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), npcell/n_assemblies, iPC+2*((npcell/n_assemblies)), PC_BSC, iPC_BSC, iPC_BSC+1, Pcell2BScell_delay, Pcell2BScell_weight)  // PC to BSC
+
+
+ print "============================================="
+print " Connect Interneurons to PCs..."
+
+print "Connect Baskets to PCs" 
+connectinpc(npcell, iPC, nbcell, iBC, BC_PC, iBC_PC, iBC_PC, Bcell2Pcell_delay, Bcell2Pcell_weight) // BC to PC
+
+  //-- 
+print "Connect AAC to PCs"
+  connectinpc(npcell, iPC, naacell, iAAC, AAC_PC, iAAC_PC, iAAC_PC, AAcell2Pcell_delay, AAcell2Pcell_weight)  //AAC to PC
+
+ //BSC to PC
+print "Connect Bistratified to PCs"
+
+connectinpc(npcell/n_assemblies, iPC, nbscell/n_assemblies, iBSC, BSC_PC/4, iBSC_PC, iBSC_PC+7, BScell2Pcell_delay, BScell2Pcell_weight)
+connectinpc(npcell/n_assemblies, iPC+(npcell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_PC/4, iBSC_PC, iBSC_PC+7, BScell2Pcell_delay, BScell2Pcell_weight)
+//connectinpc(npcell/n_assemblies, iPC+(2*(npcell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_PC/4, iBSC_PC, iBSC_PC+7, BScell2Pcell_delay, BScell2Pcell_weight)
+
+connectinpc(npcell/n_assemblies, iPC, nbscell/n_assemblies, iBSC, BSC_PC/4, iBSC_PC+8, iBSC_PC+15, BScell2Pcell_delay, BScell2Pcell_GABAB_weight*0.3)
+connectinpc(npcell/n_assemblies, iPC+(npcell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_PC/4, iBSC_PC+8, iBSC_PC+15, BScell2Pcell_delay, BScell2Pcell_GABAB_weight*0.3)
+//connectinpc(npcell/n_assemblies, iPC+(2*(npcell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_PC/4, iBSC_PC+8, iBSC_PC+15, BScell2Pcell_delay, BScell2Pcell_GABAB_weight*0.3)
+
+//---BSC to PC basal
+connectinpc(npcell/n_assemblies, iPC, nbscell/n_assemblies, iBSC, BSC_PC/4, iBSCb_PC, iBSCb_PC+5, BScell2Pcell_delay, BScell2Pcell_weight)
+connectinpc(npcell/n_assemblies, iPC+(npcell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_PC/4, iBSCb_PC, iBSCb_PC+5, BScell2Pcell_delay, BScell2Pcell_weight)
+//connectinpc(npcell/n_assemblies, iPC+(2*(npcell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_PC/4, iBSCb_PC, iBSCb_PC+5, BScell2Pcell_delay, BScell2Pcell_weight) 
+
+
+connectinpc(npcell/n_assemblies, iPC, nbscell/n_assemblies, iBSC, BSC_PC/4, iBSCb_PC+6, iBSCb_PC+11, BScell2Pcell_delay, BScell2Pcell_GABAB_weight)  
+connectinpc(npcell/n_assemblies, iPC+(npcell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_PC/4, iBSCb_PC+6, iBSCb_PC+11, BScell2Pcell_delay, BScell2Pcell_GABAB_weight)    
+//connectinpc(npcell/n_assemblies, iPC+(2*(npcell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_PC/4, iBSCb_PC+6, iBSCb_PC+11, BScell2Pcell_delay, BScell2Pcell_GABAB_weight)     
+
+ 
+ 
+  print "=================================="
+ print "Connect ... Interneurons to Interneurons"
+ 
+ 
+ print "Connect Baskets to Baskets"      	
+connectin(nbcell, iBC, nbcell, iBC, BC_BC, iBC_BC, iBC_BC, Bcell2Bcell_delay, Bcell2Bcell_weight) // BC to BC
+ 
+ 
+ print "Connect Baskets to BSC"
+
+  // BC to BSC
+connectin(nbscell/n_assemblies, iBSC, nbcell/n_assemblies, iBC, BC_BSC, iBC_BSC, iBC_BSC, Bcell2BScell_delay, Bcell2BScell_weight)
+connectin(nbscell/n_assemblies, iBSC + (nbscell/n_assemblies), nbcell/n_assemblies, iBC+ (nbcell/n_assemblies), BC_BSC, iBC_BSC, iBC_BSC, Bcell2BScell_delay, Bcell2BScell_weight)
+//connectin(nbscell/n_assemblies, iBSC + (2*(nbscell/n_assemblies)), nbcell/n_assemblies, iBC+ (2*(nbcell/n_assemblies)), BC_BSC, iBC_BSC, iBC_BSC, Bcell2BScell_delay, Bcell2BScell_weight)    
+    
+  // BC to AAC
+ print "Connect Baskets to AAC"
+    connectin(naacell, iAAC, nbcell, iBC, BC_AAC, iBC_AAC, iBC_AAC, Bcell2AAcell_delay, Bcell2AAcell_weight) // BC to AAC
+      
+   
+ 
+ 
+ 
+ print "Connect BSC to Baskets"
+
+
+//BSC to BC
+connectin(nbcell/n_assemblies, iBC, nbscell/n_assemblies, iBSC, BSC_BC, iBSC_BC, iBSC_BC+1, BScell2Bcell_delay, BScell2Bcell_weight)
+connectin(nbcell/n_assemblies, iBC+(nbcell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_BC, iBSC_BC, iBSC_BC+1, BScell2Bcell_delay, BScell2Bcell_weight)
+//connectin(nbcell/n_assemblies, iBC+(2*(nbcell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_BC, iBSC_BC, iBSC_BC+1, BScell2Bcell_delay, BScell2Bcell_weight)
+
+
+
+print "Connect BSC to BSC"
+//BSC to BSC
+
+connectin(nbscell/n_assemblies, iBSC, nbscell/n_assemblies, iBSC, BSC_BSC, iBSC_BSC, iBSC_BSC+1, BScell2BScell_delay, BScell2BScell_weight) 
+connectin(nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_BSC, iBSC_BSC, iBSC_BSC+1, BScell2BScell_delay, BScell2BScell_weight)   
+//connectin(nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_BSC, iBSC_BSC, iBSC_BSC+1, BScell2BScell_delay, BScell2BScell_weight)   
+
+print "Connect BSC to ... Axoaxonic"
+//BSC to AAC
+
+connectin(naacell/n_assemblies, iAAC, nbscell/n_assemblies, iBSC, BSC_AAC, iBSC_AAC, iBSC_AAC+1, BScell2AAcell_delay, BScell2AAcell_weight)
+connectin(naacell/n_assemblies, iAAC+(naacell/n_assemblies), nbscell/n_assemblies, iBSC+(nbscell/n_assemblies), BSC_AAC, iBSC_AAC, iBSC_AAC+1, BScell2AAcell_delay, BScell2AAcell_weight)
+//connectin(naacell/n_assemblies, iAAC+(2*(naacell/n_assemblies)), nbscell/n_assemblies, iBSC+(2*(nbscell/n_assemblies)), BSC_AAC, iBSC_AAC, iBSC_AAC+1, BScell2AAcell_delay, BScell2AAcell_weight)
+
+}
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

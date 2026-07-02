@@ -1,0 +1,161 @@
+func fieldrec_1() { local I, Phi, PhiAll, r, x, y, z, x1, x2, y1, y2, z1, z2, dS, h, l, r2
+	sigma = 25*0.1//0.3 // uS/um 0.6 peftei 0.1 megalwnei
+	PhiAll = 0
+	forall {
+	if (ismembrane("extracellular")) {
+		I = 0
+		for (x,0) { I += i_membrane(x)*area(x) }
+		if( n3d() != 2 ) print "n3d() not 2, line approximation is invalid, section: ", secname()
+		// coordinates of the line ends:
+		x1 = x3d(0)
+		x2 = x3d(1)
+		y1 = y3d(0)
+		y2 = y3d(1)
+		z1 = z3d(0)
+		z2 = z3d(1)
+		dS = arc3d(1)
+		// distances:
+		h = (1/dS) * ( (Ex1 - x2)*(x2 - x1) + (Ey - y2)*(y2 - y1) + (Ez - z2)*(z2 - z1)  ) 
+		r2 = (Ex1 - x2)^2 + (Ey - y2)^2 + (Ez - z2)^2 - h^2
+		l = h + dS
+		if (h<0 && l<0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) / (sqrt(l^2 + r2) - l) ) }
+		if (h<0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) * ( l + sqrt(l^2 + r2) ) / r2) }
+		if (h>0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (l + sqrt(l^2 + r2) ) / ( sqrt(h^2 + r2) + h )) }
+		ifsec "soma" { //treat it as a sphere
+			x = (x2 + x1)/2
+			y = (y2 + y1)/2
+			z = (z2 + z1)/2
+			r = sqrt( (Ex1-x)^2 + (Ey-y)^2 + (Ez-z)^2 )
+			Phi =  I/(4*PI*sigma*r)
+			}
+		PhiAll += Phi
+		}
+		}
+	return PhiAll
+}
+
+//-----------------alexandra tzilivaki mea recs across x axis.
+func fieldrec_2() { local I, Phi, PhiAll, r, x, y, z, x1, x2, y1, y2, z1, z2, dS, h, l, r2
+	sigma = 25*0.1//0.3 // uS/um 0.6 peftei 0.1 megalwnei
+	PhiAll = 0
+	forall {
+	if (ismembrane("extracellular")) {
+		I = 0
+		for (x,0) { I += i_membrane(x)*area(x) }
+		if( n3d() != 2 ) print "n3d() not 2, line approximation is invalid, section: ", secname()
+		// coordinates of the line ends:
+		x1 = x3d(0)
+		x2 = x3d(1)
+		y1 = y3d(0)
+		y2 = y3d(1)
+		z1 = z3d(0)
+		z2 = z3d(1)
+		dS = arc3d(1)
+		// distances:
+		h = (1/dS) * ( (Ex2 - x2)*(x2 - x1) + (Ey - y2)*(y2 - y1) + (Ez - z2)*(z2 - z1)  ) 
+		r2 = (Ex2 - x2)^2 + (Ey - y2)^2 + (Ez - z2)^2 - h^2
+		l = h + dS
+		if (h<0 && l<0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) / (sqrt(l^2 + r2) - l) ) }
+		if (h<0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) * ( l + sqrt(l^2 + r2) ) / r2) }
+		if (h>0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (l + sqrt(l^2 + r2) ) / ( sqrt(h^2 + r2) + h )) }
+		ifsec "soma" { //treat it as a sphere
+			x = (x2 + x1)/2
+			y = (y2 + y1)/2
+			z = (z2 + z1)/2
+			r = sqrt( (Ex2-x)^2 + (Ey-y)^2 + (Ez-z)^2 )
+			Phi =  I/(4*PI*sigma*r)
+			}
+		PhiAll += Phi
+		}
+		}
+	return PhiAll
+}
+
+func fieldrec_3() { local I, Phi, PhiAll, r, x, y, z, x1, x2, y1, y2, z1, z2, dS, h, l, r2
+	sigma = 25*0.1//0.3 // uS/um 0.6 peftei 0.1 megalwnei
+	PhiAll = 0
+	forall {
+	if (ismembrane("extracellular")) {
+		I = 0
+		for (x,0) { I += i_membrane(x)*area(x) }
+		if( n3d() != 2 ) print "n3d() not 2, line approximation is invalid, section: ", secname()
+		// coordinates of the line ends:
+		x1 = x3d(0)
+		x2 = x3d(1)
+		y1 = y3d(0)
+		y2 = y3d(1)
+		z1 = z3d(0)
+		z2 = z3d(1)
+		dS = arc3d(1)
+		// distances:
+		h = (1/dS) * ( (Ex3 - x2)*(x2 - x1) + (Ey - y2)*(y2 - y1) + (Ez - z2)*(z2 - z1)  ) 
+		r2 = (Ex3 - x2)^2 + (Ey - y2)^2 + (Ez - z2)^2 - h^2
+		l = h + dS
+		if (h<0 && l<0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) / (sqrt(l^2 + r2) - l) ) }
+		if (h<0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) * ( l + sqrt(l^2 + r2) ) / r2) }
+		if (h>0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (l + sqrt(l^2 + r2) ) / ( sqrt(h^2 + r2) + h )) }
+		ifsec "soma" { //treat it as a sphere
+			x = (x2 + x1)/2
+			y = (y2 + y1)/2
+			z = (z2 + z1)/2
+			r = sqrt( (Ex3-x)^2 + (Ey-y)^2 + (Ez-z)^2 )
+			Phi =  I/(4*PI*sigma*r)
+			}
+		PhiAll += Phi
+		}
+		}
+	return PhiAll
+}
+
+
+//-------------------------------------------------------
+
+func totalI() { local I
+	I = 0
+	forall { 
+			if (ismembrane("extracellular")) {
+				for (x,0) { I += i_membrane(x)*area(x) } 
+			}				
+	}
+	return I
+}
+
+objref Vrec[3]
+
+for la=0,2{
+Vrec[la]= new Vector()
+}
+vrec_1 = 0
+vrec_2 = 0
+vrec_3 = 0
+
+Ex1=-1000//-800 
+Ex2=400//600
+Ex3=1000
+
+Ey=25
+Ez=0
+
+proc init() {
+    finitialize(v_init)
+    fcurrent()
+    
+	vrec_1 = fieldrec_1()
+	vrec_2 = fieldrec_2()
+	vrec_3 = fieldrec_3()
+}
+
+proc advance() {
+    fadvance()
+    
+	vrec_1 = fieldrec_1()
+	vrec_2 = fieldrec_2()
+	vrec_3 = fieldrec_3()	
+}
+
+//record
+Vrec[0].record(&vrec_1,0.1)  // Dt=0.2 ms f=5kHz, so now sampling f=10 KHz ALEKA 
+Vrec[1].record(&vrec_2,0.1)  // Dt=0.2 ms f=5kHz, so now sampling f=10 KHz ALEKA 
+Vrec[2].record(&vrec_3,0.1)  // Dt=0.2 ms f=5kHz, so now sampling f=10 KHz ALEKA 
+
+

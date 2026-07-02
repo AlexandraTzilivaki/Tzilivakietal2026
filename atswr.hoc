@@ -1,0 +1,748 @@
+// Open Neuron ghui
+{load_file("nrngui.hoc")}  // load the GUI and standard run libraries
+
+cvode.active(0)     
+//-----Objects for record data
+objref cv
+cv=new CVode(0)
+
+//........................
+n_assemblies=3  
+//n_trials=2 
+//csd=0   // trials simulations per condition
+seed1 = n_trials  // for statistics randomization purposes
+
+
+objref Ipulse3L, RandNetStimL, NetConL
+Ipulse3L = new List()
+RandNetStimL = new List()
+NetConL = new List()
+
+
+// CELL TYPES
+
+{load_file("cells/pyramidal_cell_14VbTest.hoc")}
+{load_file("cells/basket_cell17S.hoc")}
+{load_file("cells/axoaxonic_cell17S.hoc")}
+{load_file("cells/bistratified_cell13S.hoc")}
+
+// SWR input
+{load_file("cells/stim_cell_ca3.hoc")}
+
+// RANDOM GENERATOR
+{load_file("cells/ranstream.hoc")}  // to give each cell its own sequence generator
+
+
+func round () {
+  if ($1-int($1) >= 0.5) {
+    return int($1)+1
+  } else {
+    return int($1)
+  }
+}
+
+func ceiling () {   //ceiling is used for calculating the amount of PV subtypes. 
+  if ($1-int($1) != 0) {
+    return int($1)+1
+  } else {
+    return int($1)
+  }
+}
+
+func flooring () {
+  if ($1-int($1) != 0) {
+    return int($1)-1
+  } else {
+    return int($1)
+  }
+}
+
+strdef my_string,temp_save1,temp_save2,temp_dir, temp_mkdir
+  
+print "Running "
+sprint(temp_dir, "../../../alznew/Alexandra/DATASET/Controltest/Trial_%d",n_trials)
+sprint(temp_mkdir, "mkdir -p %s", temp_dir)
+system(temp_mkdir)
+
+//////////////////////////////////
+// Step 1: Define the cell classes
+//////////////////////////////////
+
+npcell    = 150
+naacell   = 3
+nbcell    = 9 
+nbscell   =6
+nCA3      = 246
+
+ncell = npcell+naacell+nbcell+nbscell
+nstim =nCA3                             
+ntot  = ncell+nstim
+
+//////////////////////////////////////////////////////////////
+// Steps 2 and 3 are to create the cells and connect the cells
+//////////////////////////////////////////////////////////////
+
+iPC=0
+iBC=npcell
+iBSC=npcell+nbcell
+iAAC=npcell+nbcell+nbscell
+
+
+iCA3=npcell+nbcell+nbscell+naacell
+
+
+print "naacelll: ", naacell
+print "nbcell: ", nbcell
+print "nbscells: ", nbscell
+
+
+print "iPC: ", iPC
+print "iBC: ", iBC
+print "iBSC: ", iBSC
+print "iAAC: ", iAAC
+print "iCA3:", iCA3
+
+Nx= iCA3 // we need it for Position 
+//////////////////////////////////
+// CA3 Input
+//////////////////////////////////
+objref index_vecCA3
+
+index_vecCA3 = new Vector(nCA3)
+
+//Monotonically increasing index vector initialization:
+
+for k = 0, nCA3-1 {
+  index_vecCA3.x[k] = k
+}
+
+objref flCA3[nCA3], vspkCA3[nCA3], vecstimCA3[nCA3]
+strdef tmpstring2
+
+for (i=0; i < nCA3; i = i+1) { 
+
+  flCA3[i] = new File()
+
+  sprint(tmpstring2, "ca3inputtime/run_5/cell_%d.txt", index_vecCA3.x[i])
+  
+  flCA3[i].ropen(tmpstring2)
+  vspkCA3[i] = new Vector()
+  vspkCA3[i].scanf(flCA3[i])
+  flCA3[i].close()
+}
+
+connect_random_low_start_ = 1  // low seed for mcell_ran4_init()
+
+objref cells, nclist, ncslist, ncelist  // cells will be a List that holds 
+  // all instances of network cells that exist on this host
+  // nclist will hold all NetCon instances that exist on this host
+  // and connect network spike sources to targets on this host (nclist)
+  // ncslist holds NetConns from input spike sources (NetStims)
+objref ranlist1//, ranlist2  // for RandomStreams on this host
+objref stims, stimlist // phasic and tonic cell stimulation
+
+objref gidvec  // to associate gid and position in cells List
+// useful for setting up connections and reporting connectivity
+
+proc mknet_init() {
+
+  print "Make cells..."
+  mkcells()  // create the cells
+
+  mcell_ran4_init(connect_random_low_start_)
+  nclist = new List()
+}
+
+//Put the connect thingies in another file and load it!
+
+ {load_file("connect.hoc")}  
+ 
+ //----------------------------------------!!!!-------------------------------------//
+ //------------------------depending on the simulation protocol we load different file. The connect.hoc is the default model ...----//
+ 
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// creates the cells and appends them to a List called cells
+// argument is the number of cells to be created
+proc mkcells() {local i,j localobj cell, nc, nil
+  
+  cells = new List()
+  ranlist1 = new List()
+  gidvec = new Vector()
+    
+    for i=0, ntot-1 {
+    if (i < iBC) {
+      cell = new PyramidalCell()
+
+      cell.geom_nseg()
+
+    } else if (i < iBSC) {
+      cell = new BasketCell() // BC
+            cell.geom_nseg()
+    } else if (i < iAAC) {
+      cell = new BistratifiedCell() // BSC
+            cell.geom_nseg()
+    } else if (i < iCA3) {
+      cell = new AACell()  // AAC
+            cell.geom_nseg()
+    } else {
+      cell = new StimCellCA3(vspkCA3[i-iCA3]) // CA3 input
+    }
+    
+    cells.append(cell)
+    ranlist1.append(new RandomStream(i+seed1))  // ranlist.o(i) corresponds to
+    gidvec.append(i)
+  }
+}
+
+// 3D position
+
+objref X[ncell], Y[ncell], Z[ncell], flX[ncell], flY[ncell], flZ[ncell]
+strdef tmpstring3
+strdef tmpstring4
+strdef tmpstring5
+
+for (i=0; i < ncell; i = i+1) { 
+flX[i]= new File()
+flY[i]= new File()
+flZ[i]= new File()
+
+sprint(tmpstring3, "Xrandom.txt")
+sprint(tmpstring4, "Yrandom.txt")
+sprint(tmpstring5, "Zrandom.txt")
+
+flX[i].ropen(tmpstring3)
+  X[i] = new Vector()
+  X[i].scanf(flX[i])
+  flX[i].close()
+  
+  flY[i].ropen(tmpstring4)
+  Y[i] = new Vector()
+  Y[i].scanf(flY[i])
+  flY[i].close()
+  
+  flZ[i].ropen(tmpstring5)
+  Z[i] = new Vector()
+  Z[i].scanf(flZ[i])
+  flZ[i].close()
+     
+}
+//------------------
+
+
+
+proc setpositions(){ local gid, i, x, y
+  for i=0,cells.count-1{
+  if (i<Nx) {  // aleka. 
+		gid=gidvec.x[i]
+		if (gid>=iPC && gid<iCA3){
+		x=X.x[i]
+		y=Y.x[i]
+ 		z=Z.x[i]
+		cells.object(i).position(x,y,z)
+		
+		
+  
+  }
+ 
+ } //IF
+}
+}
+
+
+
+
+
+/*
+Ex=530//700// 700//2500
+for i=0,csd-1{
+Ey=-200+(csd*25)  //250 me 30
+} //25//70//70//50 pyramidale -250 oriens ok. 270 teleio gia pyramidale -180 bgazei arnhtiko
+Ez =6//6 //7*/
+
+//Ex =700//50//700
+
+//Ey =25//50//25
+
+//Ez =0//6//6 //7  */
+
+// Target cells receive "convergence" number of inputs from
+// the pool of source cells (only one input per source cell at most)
+// ("convergence" not reached if no. of sources < convergence)
+// connectcells(number of targets, first target cell, 
+//    number of source cells, first source cell, 
+//    convergence, first synapse,
+//    last synapse, connection delay, weight)
+// appends the NetCons to a List called nclist
+
+   objref rvec
+     rvec= new Vector(40)
+  proc connectinputspc() {local i, j, gid, nsyn, r, rnd, kapa localobj ri, syn, nc, rs, rand, pulse_, netstim_, netcon_//local i, j, gid, nsyn, r localobj syn, nc, rs
+
+ for i=0, cells.count-1 {  // loop over possible target cells
+  
+  cells.object(i).soma{
+    pulse_ = new Ipulse3(0.5)  
+    pulse_.dur = 1  
+    pulse_.amp = 0.05
+    netstim_ = new NetStim()
+    netstim_.interval = 20
+    netstim_.number = 1e9 
+    netstim_.start = 100
+    netstim_.noise = 1 
+    netstim_.seed(i+1)
+    netcon_ = new NetCon(netstim_,pulse_)
+    netcon_.threshold = 0
+    netcon_.weight = 1 
+    netcon_.delay = 0
+    Ipulse3L.append(pulse_)
+    RandNetStimL.append(netstim_)
+    NetConL.append(netcon_)
+  
+   }
+
+ ri= ranlist1.object(i)
+ ri.start
+ kapa= ri.r.uniform(0,1)
+    gid = gidvec.x[i] // id of cell
+  
+    if (gid >= $2 && gid < $1+$2 && kapa>0.75 ) {
+          print i
+          rvec.append(i)
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) {
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          nc.delay = $8
+          
+          nc.weight = $9 
+         
+          nclist.append(nc)
+
+        }
+      }
+
+  }
+   }
+   }
+   
+   proc connectinputsin() {local i, j, gid, nsyn, r, rnd localobj syn, nc, rs, rand, pulse_, netstim_, netcon_
+  for i=0, cells.count-1 {  // loop over possible target cells
+  
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2 ) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) {
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          nc.delay = $8
+          
+          nc.weight = $9
+         
+          nclist.append(nc)
+        }
+      } 
+   //cells.object(i).soma{
+    //pulse_ = new Ipulse3(0.5)  //den allazei kati
+    //pulse_.dur = 1  //to amplitude ephreazei
+    //pulse_.amp = 0.06
+    //netstim_ = new NetStim()
+    //netstim_.interval = 20
+    //netstim_.number = 1e9 // essentially unlimited
+    //netstim_.start = 100
+    //netstim_.noise = 1 // 0 for deterministic, 1 for negexp
+    //netstim_.seed(i+1)
+    //netcon_ = new NetCon(netstim_,pulse_)
+    //netcon_.threshold = 0
+    //netcon_.weight = 1 //edw mporei na mpei ena seed!
+    //netcon_.delay = 0
+    //Ipulse3L.append(pulse_)
+    //RandNetStimL.append(netstim_)
+    //NetConL.append(netcon_)
+
+//}
+   
+   }
+
+  }
+   }
+
+ 
+   proc connectin() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) { //if source and target are different!
+        d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+
+
+     while (d>905){
+                r = rs.r.discunif($4, $4+$3-1)
+
+                       d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+            print "OLD D", d
+                    // if ( d<=905){   
+                    if (d<=905 && r!=gid){
+                       print " NEW D ", d
+                       p=exp(-((d^2)/(2*(600^2))))
+break
+                }
+                     
+               }
+
+
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          
+          nc.delay = $8
+          // apply weight factor based on distance
+         
+          nc.weight = $9*p
+         
+          nclist.append(nc)
+          
+        
+         
+        }
+      }
+ 
+   }
+  }
+ }
+ 
+ 
+
+
+proc connectinpc() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        
+        
+        if (r != gid) { //if source and target are different!
+        d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+
+        while (d>905){
+                r = rs.r.discunif($4, $4+$3-1)
+                        d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+                    if (d<=905 && r!=gid){
+                    p=exp(-((d^2)/(2*(600^2))))
+                 break
+                        }
+                        }
+                        
+                       
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+          
+          nc.delay = $8
+          // apply weight factor based on distance
+          
+          nc.weight = $9*p
+         
+                            
+          nclist.append(nc)
+        }
+      }
+ 
+   }
+  }
+ }
+ 
+
+
+ proc connectpyrs() { local i, j, gid, d, nsyn, r, p, rnd localobj syn, nc, rs, rand
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+     if (r != gid) { //if source and target are different!
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+
+while (d>800){
+  r = rs.r.discunif($4, $4+$3-1)
+
+d= abs(cells.object(i).x -cells.object(r).x) //calculate the distance between source and target
+                    if (d<=800 && r!=gid){
+                           p=exp(-((d^2)/(2*(600^2))))
+                break
+     }
+     }
+
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+        
+          nc = cells.object(r).connect2target(syn)
+
+          nc.delay = $8
+          // apply weight factor based on distance
+      
+          nc.weight = $9*p
+        print nc.weight
+          nclist.append(nc)
+
+     }
+ 
+   }
+  }
+ }
+ }
+
+ 
+
+
+ proc connectpcin() { local i, j, gid, d, nsyn, r, rnd localobj syn, nc, rs, rand
+ 
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    if (gid >= $2 && gid < $1+$2) {
+     // appropriate target cells
+      // initialize the pseudorandom number generator 
+      rs = ranlist1.object(i)  // RandomStream for cells.object(i)
+      rs.start()
+      for nsyn=0, $5-1 {
+        // for source cell
+        r = rs.r.discunif($4, $4+$3-1)
+        if (r != gid) { //if source and target are different!
+        d= abs((cells.object(i).x) - (cells.object(r).x)) //calculate the distance between source and target
+        
+      while (d>800){
+               r = rs.r.discunif($4, $4+$3-1)
+                       d= abs((cells.object(i).x) -(cells.object(r).x)) //calculate the distance between source and target
+                    if (d<=800 && r!=gid){
+                                           p=exp(-((d^2)/(2*(600^2))))
+                       
+  break
+                       }
+                       }
+          // target synapses
+          j = rs.r.discunif($6, $7)
+          // set up connection from source to target
+          syn = cells.object(i).pre_list.object(j)
+          nc = cells.object(r).connect2target(syn)
+        
+          nc.delay = $8
+          // apply weight factor based on distance
+       
+          nc.weight = $9*p
+        
+          nclist.append(nc)
+
+        }
+      }
+ 
+   }
+}
+}
+
+//xopen("random_connectivity.hoc")   //if i run random inhibition model version then i sue this and comment the previous procedures!!
+
+
+// Set up the connections-Network build
+
+mknet_init()
+
+mknet()
+setpositions()
+mknet_connectivity()
+
+
+
+ //============================================================RECORD & SAVE LFP ACROSS THE SEPTOTEMPORAL AXIS MULTIPLE ELECTRODES
+
+{load_file("meafinal.hoc")}
+print "tralalala"
+
+//==================================================================================================================================================
+
+//////////////////////////////////////////////////
+// Instrumentation, i.e. stimulation and recording
+// Cell voltage
+//////////////////////////////////////////////////
+
+// Record cell voltage traces
+objref pyrsoma[npcell]  // Vectors that record voltages from PCs
+objref vBC[nbcell], vAAC[naacell], vBSC[nbscell] // Vectors that record voltages from INs
+
+proc vrecord() {local i, gid
+  print "Record example voltage traces..."
+  for i=0, cells.count-1 {  // loop over possible target cells
+    gid = gidvec.x[i] // id of cell
+    
+    if (gid>=iPC && gid < iPC+npcell) {
+      pyrsoma[gid-iPC] = new Vector()
+      pyrsoma[gid-iPC].record(&cells.object(i).soma.v(0.5))
+    }
+    if (gid>=iAAC && gid < iAAC+naacell) {
+      vAAC[gid-iAAC] = new Vector()
+      vAAC[gid-iAAC].record(&cells.object(i).soma.v(0.5))
+    }    
+    if (gid>=iBC && gid < iBC+nbcell) {
+      vBC[gid-iBC] = new Vector()
+      vBC[gid-iBC].record(&cells.object(i).soma.v(0.5))
+    }
+    if (gid>=iBSC && gid < iBSC+nbscell) {
+      vBSC[gid-iBSC] = new Vector()
+      vBSC[gid-iBSC].record(&cells.object(i).soma.v(0.5))
+    }
+    
+  }
+}
+
+vrecord()
+
+
+////////////////////////////
+// Simulation control
+////////////////////////////
+
+strdef fstem, path
+
+xopen("basic-graphics.hoc") 
+
+objref b
+b = new VBox(2)
+b.intercept(1)
+
+
+
+addgraph("cells.object(35).soma.v(0.5)",-90,50)
+addgraph("cells.object(135).soma.v(0.5)",-90,50)
+addgraph("cells.object(151).soma.v(0.5)",-90,50)
+addgraph("cells.object(163).soma.v(0.5)",-90,50)
+addgraph("cells.object(166).soma.v(0.5)",-90,50)
+
+//addgraph("vrec",-0.8,0.8)
+addgraph("vrec_1",-0.8,0.8)
+addgraph("vrec_2",-0.8,0.8)
+addgraph("vrec_3",-0.8,0.8)
+b.intercept(0)
+b.map
+
+//sprint(path,"mkdir %s",folder )
+system(path)
+sprint(fstem,"%s/Trial_%d",temp_dir,n_trials)
+
+// Time parameters
+tstop =1200//2000// 1200//SIMDUR
+dt = 0.1
+steps_per_ms =10
+//n=tstop*steps_per_ms
+celsius = 34
+
+run()
+
+
+////////////////////////////
+// Report simulation results
+////////////////////////////
+electrodex=3
+
+objref fo
+strdef fno
+proc vout() { local i, j, l, k, gid, cnt
+//ALEKA SAVE LFP
+
+for l=0, (electrodex-1){
+sprint(fno,"%s_lfp_%d.dat", fstem, l)
+fo=new File(fno)
+fo.wopen()
+for k=0, Vrec[l].size-1{
+fo.printf("%g\n",Vrec[l].x[k])
+}
+fo.close()
+
+}
+
+
+ for j=0, cells.count-1 {  
+    gid = gidvec.x[j] // id of cell
+    cnt = 0
+    if (gid >= iPC && gid < iPC+npcell) {
+      sprint(fno,"%s_pyrsoma_%d.dat", fstem, gid-iPC)
+      fo = new File(fno)
+      fo.wopen()
+      for i=0, pyrsoma[gid-iPC].size-1 {
+        fo.printf("%g\n", pyrsoma[gid-iPC].x[i])
+      }
+    fo.close()
+    }
+    if (gid >= iAAC && gid < iAAC+naacell) {
+      sprint(fno,"%s_aacell_%d.dat", fstem, gid-iAAC)
+      fo = new File(fno)
+      fo.wopen()
+      for i=0, vAAC[gid-iAAC].size-1 {
+        fo.printf("%g\n", vAAC[gid-iAAC].x[i])
+      }
+      fo.close()
+    }
+    if (gid >= iBC && gid < iBC+nbcell) {
+      sprint(fno,"%s_bcell_%d.dat", fstem, gid-iBC)
+      fo = new File(fno)
+      fo.wopen()
+      for i=0, vBC[gid-iBC].size-1 {
+        fo.printf("%g\n", vBC[gid-iBC].x[i])
+      }
+      fo.close()
+    }
+    if (gid >= iBSC && gid < iBSC+nbscell) {
+      sprint(fno,"%s_bscell_%d.dat", fstem, gid-iBSC)
+      fo = new File(fno)
+      fo.wopen()
+      for i=0, vBSC[gid-iBSC].size-1 {
+        fo.printf("%g\n", vBSC[gid-iBSC].x[i])
+      }
+      fo.close()
+    }
+    
+  }
+}
+//vout()   //uncomment for saving.
+
+print "DATA saved!"
+
+print "We love interneurons, wir lieben Interneuronen, agapame endoneurwnes!"
